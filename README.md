@@ -1,6 +1,6 @@
 # ldoherty.dev
 
-My personal portfolio site, built with React and TypeScript. Showcases my projects and experience.
+My personal portfolio site at [ldoherty.dev](https://ldoherty.dev), built with React and TypeScript. Showcases my projects and experience.
 
 ## Stack
 
