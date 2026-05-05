@@ -1,0 +1,167 @@
+---
+title: "How To Guide: Using Apex Charts in Nuxt"
+description: How to resolve the "window is not defined" SSR error when using ApexCharts.js in a Nuxt application, with several approaches including ClientOnly, route rules, and wrapper components.
+date: 2024-12-13
+---
+
+Using [ApexCharts.js](https://apexcharts.com/) in Nuxt can be a bit tricky if you're not familiar with how SSR (Server Side Rendering) works. As such, you'll normally encounter some unexpected errors when attempting to use the charts. To get started, in your nuxt project, install the vue wrapper for Apex Charts.
+
+```bash
+npm i vue3-apexcharts
+```
+
+Below is an example on using the charts in a template or page, for projects using Vue composition API.
+
+```vue
+<template>
+    <VueApexCharts width="500" type="bar" :options="options" :series="series"></VueApexCharts>
+</template>
+
+<script setup lang="ts">
+import VueApexCharts from 'vue3-apexcharts'
+import ApexCharts from 'apexcharts'
+
+definePageMeta({
+    layout: 'default',
+})
+
+const options = ref<ApexCharts.ApexOptions>({
+    chart: {
+        id: 'vuechart-example'
+    },
+    xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
+    }
+})
+
+const series = [{
+    data: [30, 40, 45, 50, 49, 60, 70, 81]
+}]
+</script>
+
+<style></style>
+```
+
+Now, most likely if you tried to run this you would get this error below. "Window is not defined" is one of the most common errors encountered when using the apex charts library in an SSR scenario.
+
+```
+ERROR  window is not defined
+
+at Object.<anonymous> (node_modules\.pnpm\apexcharts@4.2.0\node_modules\apexcharts
+\dist\apexcharts.common.js:6:488849)
+at Module._compile (node:internal/modules/cjs/loader:1358:14)
+at Object..js (node:internal/modules/cjs/loader:1416:10)
+at Module.load (node:internal/modules/cjs/loader:1208:32)
+at Function._load (node:internal/modules/cjs/loader:1024:12)
+at cjsLoader (node:internal/modules/esm/translators:348:17)
+at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:297:7)
+at ModuleJob.run (node:internal/modules/esm/module_job:222:25)
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+at async ModuleLoader.import (node:internal/modules/esm/loader:316:24)
+```
+
+As the error suggests, the ApexCharts.js library is attempting to access the `window` object, which is not defined. This is because the code is being executed on the server first, where browser related functionality does not exist.
+
+The way to solve this is by marking the component as client only. Nuxt provides a few ways to do this.
+
+## Option 1: ClientOnly wrapper
+
+The easiest way is to wrap the component with the `<ClientOnly>` tags. This forces the component to only render on the client side.
+
+```vue
+<template>
+    <ClientOnly>
+        <VueApexCharts width="500" type="bar" :options="options" :series="series"></VueApexCharts>
+    </ClientOnly>
+</template>
+```
+
+## Option 2: .client suffix
+
+Alternatively you can add the `.client` suffix to a page or component to make it render client side only.
+
+```
+index.client.vue
+```
+
+## Option 3: Route rules
+
+If you have whole areas of your app that are always going to be client only rendering, marking each component or file as client only will get tedious.
+
+Luckily, you can set route rules in the Nuxt config to disable SSR for whole portions of your application.
+
+```ts
+export default defineNuxtConfig({
+  compatibilityDate: '2024-11-01',
+  devtools: { enabled: true },
+  routeRules: {
+    '/dashboard': {
+      ssr: false,
+    }
+  },
+})
+```
+
+The above code disables SSR for any page with `dashboard` in the path.
+
+## Option 4: Wrapper component
+
+If none of these options are suitable for you, another option is to create a wrapper component for the chart's component.
+
+```vue
+// components/NuxtApexCharts.vue
+
+<template>
+    <ClientOnly>
+        <VueApexCharts width="500" type="bar" :options="options" :series="series"></VueApexCharts>
+    </ClientOnly>
+</template>
+
+<script setup lang="ts">
+import VueApexCharts from 'vue3-apexcharts'
+import ApexCharts from 'apexcharts'
+
+defineProps<{
+    options: ApexCharts.ApexOptions
+    series: ApexAxisChartSeries
+}>()
+</script>
+
+<style scoped></style>
+```
+
+You can now reuse this component anywhere, and it will only render on the client side, ensuring no errors are encountered.
+
+When using this wrapper component you can still make use of the `ApexOptions` and `ApexSeries` interfaces under the `ApexCharts` namespace to get type safety when defining the props.
+
+Just make sure you don't import `ApexCharts` or `vue3-apexcharts` in the consuming file, as those dependents seem to trigger the `window is not defined` error.
+
+```vue
+<template>
+    <NuxtApexCharts width="500" type="bar" :options="options" :series="series"></NuxtApexCharts>
+</template>
+
+<script setup lang="ts">
+definePageMeta({
+    layout: 'default',
+})
+
+const options = ref<ApexCharts.ApexOptions>({
+    chart: {
+        id: 'vuechart-example'
+    },
+    xaxis: {
+        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep']
+    },
+    series: [{
+        data: [30, 40, 45, 50, 49, 60, 70, 81]
+    }]
+})
+
+const series: ApexAxisChartSeries = [{
+    data: [30, 40, 45, 50, 49, 60, 70, 81]
+}]
+</script>
+
+<style></style>
+```

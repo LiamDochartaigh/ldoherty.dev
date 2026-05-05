@@ -1,0 +1,13 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "types": [
+            "node"
+        ],
+        "composite": true
+    },
+    "exclude": [
+        "vite.config.ts",
+        "plugins/**/*"
+    ]
+}

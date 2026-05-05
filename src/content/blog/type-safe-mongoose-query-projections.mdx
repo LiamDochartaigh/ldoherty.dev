@@ -1,0 +1,68 @@
+---
+title: Type-Safe Mongoose Query Projections
+description: How to build a generic utility function that applies Mongoose query projections while preserving full TypeScript type safety on the result.
+date: 2024-10-05
+---
+
+This week, I've been diving into some work with Mongoose for a side project that I'm building with Nuxt. I found myself needing to return user data with different sets of fields to the client depending on the context.
+
+The best way to do this seemed to be using projections within a Mongoose query, and only selecting the fields that were required. The issue with a simple projection is that the results were not type-safe. So, I spent some time to create a function which can do this for me.
+
+```ts
+export async function getPickedSchemaData<
+  ResultType,
+  DocType,
+  Field extends keyof mongoose.SchemaDefinitionType<DocType>
+>(
+  query: mongoose.Query<ResultType, DocType>,
+  fields: Field[],
+): Promise<
+  ResultType extends DocType[]
+    ? Pick<mongoose.SchemaDefinitionType<DocType>, Field>[] | null
+    : Pick<mongoose.SchemaDefinitionType<DocType>, Field> | null
+> {
+  const projection: Record<string, 1 | 0> = {};
+
+  fields.forEach((field) => {
+    projection[field as string] = 1;
+  });
+
+  query.projection(projection);
+
+  return await query.lean<
+    ResultType extends DocType[]
+      ? Pick<mongoose.SchemaDefinitionType<DocType>, Field>[] | null
+      : Pick<mongoose.SchemaDefinitionType<DocType>, Field> | null
+  >();
+}
+```
+
+This function accepts two parameters: the first is a pre-constructed Mongoose query, and the second is an array of fields used to define the projection.
+
+I've made use of generics here to make the function more reusable. The code within the function is pretty straightforward — it loops through the fields and populates a record object which is passed into the query's `projection` function.
+
+In my case I wanted to only return lean queries (this just returns a POJO and not the Mongoose document object), so I had to again define the expected return types on the `lean` operation.
+
+You'll notice there are two possible return types. This is primarily because a `findOne` query is expected to return a single document and a `find` query is expected to return an array of documents.
+
+Let's take a look at how to use this function:
+
+```ts
+import { Order } from "~/server/models/orderModel";
+
+export default defineEventHandler({
+  handler: async (event) => {
+    const query = Order.find().limit(10);
+    const typeSafeResult = await getPickedSchemaData(query, [
+      "order_id",
+      "customer_id",
+      "total",
+      "status",
+    ]);
+
+    return typeSafeResult;
+  },
+});
+```
+
+The `fields` parameter is type-safe, so if you've defined a Mongoose model already, the function knows which fields are valid.

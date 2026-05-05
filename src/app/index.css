@@ -1,0 +1,55 @@
+/* Font loading */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  /* Colors */
+  --color-primary: #ff2d78;
+  --color-secondary: #ff80ab;
+  --color-background: #0a0a0f;
+  --color-surface: #12121a;
+  --color-text: #f0f0f0;
+  --color-muted: #6b6b80;
+
+  /* Fonts */
+  --font-sans: 'IBM Plex Mono', monospace;
+  --font-display: 'Space Mono', monospace;
+
+  /* Spacing */
+  --spacing-section: 6rem;
+}
+
+/* Base styles */
+html {
+  scrollbar-gutter: stable;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-background);
+}
+
+@keyframes bracket-pulse {
+  0%, 100% { transform: translate(0, 0); }
+  50%       { transform: translate(var(--bx, 0px), var(--by, 0px)); }
+}
+
+@layer utilities {
+  .prose {
+    --tw-prose-body: var(--color-text);
+    --tw-prose-headings: var(--color-text);
+    --tw-prose-links: var(--color-primary);
+    --tw-prose-bold: var(--color-text);
+    --tw-prose-code: var(--color-secondary);
+    --tw-prose-quotes: var(--color-muted);
+    --tw-prose-counters: var(--color-muted);
+    --tw-prose-bullets: var(--color-muted);
+  }
+}

@@ -1,0 +1,132 @@
+---
+title: Maintaining Mongoose Database Connections with a Nuxt Serverless Deployment
+description: How to handle cold starts and database connection race conditions in a Nuxt app deployed on Vercel using a cached connection utility.
+date: 2024-09-21
+---
+
+Earlier this week I was encountering an issue with my Nuxt app deployment on Vercel. The database (DB) connection kept dropping intermittently. The issue turned out to be a bit tricky, due to my misconception about serverless. After some digging, I started understanding a bit more about how serverless technologies actually work under the hood.
+
+The issue I had was due to cold starts, a core part of serverless tech. Instances of your app are spun up or down depending on resources being used. Now, when I was building this application I didn't know about this and had assumed once the app was up and running it would stay that way.
+
+During cold starts when the requested page needed to pull data from the DB, certain race conditions meant the DB request was being made before it had even time to connect. At that point in time I was connecting to my DB within a Nitro server plugin.
+
+```ts
+//  server/plugins/db.ts
+
+import mongoose from "mongoose";
+import { useRuntimeConfig } from "#imports";
+
+export default defineNitroPlugin(async (nitroApp) => {
+  try {
+    mongoose.Promise = global.Promise;
+    mongoose.set("strictQuery", false);
+    await mongoose.connect(useRuntimeConfig().db_url);
+    console.log("Database connected");
+  } catch (error) {
+    console.error("Database connection error:", error);
+  }
+});
+```
+
+The problem with connecting to the database in a Nitro plugin is that Nuxt doesn't process them synchronously (although it does with the actual Nuxt plugins folder). So, during the app's start-up, you can't wait for the database to connect before proceeding with other processes.
+
+Let's fix that.
+
+There are two approaches that could be viable:
+
+1. Register a [Nitro request hook](https://nitro.unjs.io/guide/plugins#available-hooks) within the plugin to connect or retrieve a cached DB connection
+2. Create a reusable function with Nuxt utils to connect or retrieve a cached DB connection
+
+I decided that the second option would be much better in my case. Since the Nitro hook is called every request, there are many routes I don't even need to be connected to the DB — which would be wasteful.
+
+```ts
+// utils/db.ts
+
+import mongoose from "mongoose";
+
+declare global {
+  var cachedConnection: typeof mongoose | null;
+}
+
+let cachedConnection = globalThis.cachedConnection;
+if (!cachedConnection) {
+  cachedConnection = global.cachedConnection = null;
+}
+
+const uri = useRuntimeConfig().db_url;
+const dbName = useRuntimeConfig().dbName;
+mongoose.Promise = global.Promise;
+mongoose.set("strictQuery", false);
+
+export async function ConnectDB() {
+  if (cachedConnection) {
+    return cachedConnection;
+  }
+
+  const connect = async () => {
+    console.log("Connecting to database");
+
+    return mongoose.connect(uri, {
+      dbName: dbName,
+      serverSelectionTimeoutMS: 5000,
+    });
+  };
+
+  let attempt = 0;
+  const maxAttempts = 2;
+
+  while (attempt < maxAttempts) {
+    try {
+      cachedConnection = await connect();
+      global.cachedConnection = cachedConnection;
+      console.log("Database connection successful");
+      return cachedConnection;
+    } catch (error) {
+      attempt += 1;
+      console.error(`Database connection attempt ${attempt} failed:`, error);
+
+      if (attempt >= maxAttempts) {
+        console.error("All database connection attempts failed");
+        throw error;
+      } else {
+        console.log("Retrying database connection...");
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    }
+  }
+}
+```
+
+So here you can see this reusable utility function for connecting to the DB. Let's break it down a bit. The first thing to note is the `cachedConnection` variable. Every time a new connection to the DB is created, we assign it to `cachedConnection`.
+
+This makes sure we're not creating a new DB connection if there's already one active.
+
+I created the anonymous `connect` function so that the connection logic can be easily reused in the case of DB connection failure, allowing retries. Also note the `serverSelectionTimeoutMS` property, which is shorter than the mongoose default — this is to try and reduce the impact of slow start times.
+
+```ts
+const connect = async () => {
+  console.log("Connecting to database");
+
+  return mongoose.connect(uri, {
+    dbName: dbName,
+    serverSelectionTimeoutMS: 5000,
+  });
+};
+```
+
+The while loop is pretty straightforward and just makes multiple attempts to connect to the DB if any errors occur the first time round.
+
+The last part to understand is using this utility function throughout your code. If you're on an existing codebase, unfortunately you'll have to locate any calls to your database and add an `await ConnectDB()` call before them.
+
+Although I felt this was tedious, it seemed like an acceptable tradeoff for making sure that we only make DB connections when needed.
+
+```ts
+export async function GetUserFromToken(accessToken: string) {
+  // Make sure the DB is connected before any fetch or writes
+  await ConnectDB();
+  let user = await User.findOne({ access_token: accessToken });
+  if (user) {
+    return user as UserType;
+  }
+}
+```

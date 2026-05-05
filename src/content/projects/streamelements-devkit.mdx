@@ -1,0 +1,35 @@
+---
+title: 'Streamelements Devkit'
+description: 'Local dev environment for StreamElements widgets with TypeScript support, hot reload, and full Twitch event simulation.'
+---
+
+import { ButtonHyperlink } from '#components/ButtonHyperlink'
+import { OutlineImage } from '#components/OutlineImage'
+
+<OutlineImage src="/images/projects/devkit-preview.png" alt="etsy bulk sale creator screenshot" />
+
+## About Project
+
+This devkit streamlines the development of custom StreamElements widgets by providing a complete local development environment with TypeScript support. It eliminates the need to develop directly in StreamElements' browser-based editor by offering comprehensive testing capabilities for all Twitch events, chat messages, and channel point rewards.
+
+The devkit automatically transpiles TypeScript to JavaScript, ready for direct copy-paste into StreamElements. A standout feature is automatic type generation for custom fields defined in JSON configuration files, alongside global types for the StreamElements widget API.
+
+## Features
+
+- Local development with hot module reload
+- Automatic TypeScript to JavaScript transpilation
+- Custom field type generation from JSON configs
+- Complete Twitch event simulation (chat, follows, donations, etc.)
+- Channel point reward testing
+- Customizable chat message testing (badges, emotes, colors, user roles)
+- Global StreamElements API types
+- Live preview of custom field changes
+
+## Tech
+
+- Vue
+- Vite
+- TypeScript
+- Socket.io
+
+<ButtonHyperlink href="https://github.com/LiamDochartaigh/streamelements-devkit" label="github" />

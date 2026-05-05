@@ -1,0 +1,108 @@
+---
+title: How to Track Vuetify Navigation Drawer Resize in Vue
+description: How to use ResizeObserver and a Pinia store to reliably detect Vuetify navigation drawer layout shifts for re-rendering charts or other size-dependent components.
+date: 2024-12-08
+---
+
+I encountered an interesting issue last week, as I was setting up [Apex Charts](https://apexcharts.com/) within a project that uses Vuetify. On page load, the layout would shift because Vuetify adjusts the container width to account for the navigation drawer. This layout shift caused the charts to render larger than the parent it was contained in.
+
+One hacky way to solve this is to re-render the chart after some time using a `setTimeout()` in the Vue `onMounted` hook. This is obviously not desirable and does not guarantee the render occurs reliably, unless you set an unreasonable wait time for the timeout.
+
+After some digging, I came to the conclusion that Vuetify does not provide a watchable event that tracks the resizing that occurs. So I decided to implement my own solution. Here's how my layout file looked.
+
+```vue
+<template>
+  <v-app>
+    <v-main class="main">
+      <v-container ref="container" class="position-relative">
+        <v-navigation-drawer disable-resize-watcher :style="{ zIndex: 1005 }" v-model="drawer">
+          <v-list nav>
+          </v-list>
+        </v-navigation-drawer>
+        <div class="px-3 py-10">
+          <slot></slot>
+        </div>
+      </v-container>
+    </v-main>
+  </v-app>
+</template>
+
+<script setup lang="ts">
+import { useLayoutStore } from "../store";
+import { throttle } from "lodash";
+
+// Template ref for the <v-container>
+const container = ref();
+const layout = useLayoutStore();
+const drawer = ref(true);
+let resizeObserver: ResizeObserver | null;
+
+function RegisterObserver() {
+  if (!resizeObserver) {
+    resizeObserver = new ResizeObserver(throttle((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        layout.containerDimensions = { width, height };
+      }
+    }, 250));
+  }
+  resizeObserver.observe(container.value?.$el as HTMLElement);
+}
+
+function UnregisterObserver() {
+  if (resizeObserver) {
+    resizeObserver.disconnect();
+    resizeObserver = null;
+  }
+}
+
+onMounted(() => {
+  // Registering on nextTick() is important as Vuetify is only fully initialized after the nextTick
+  nextTick(() => {
+    RegisterObserver();
+  })
+});
+
+// Unregistering is necessary — client side navigation won't destroy the observer otherwise
+onBeforeUnmount(() => {
+  UnregisterObserver();
+});
+</script>
+```
+
+Here's what the above code is doing:
+
+- When the component is mounted, `RegisterObserver()` is called inside the `nextTick()` callback.
+- An observer is registered on the container template ref.
+- When the container is resized, `containerDimensions` is updated in the layout store.
+- The `ResizeObserver` callback is wrapped with lodash `throttle` to reduce the overhead of firing on every update in the event loop.
+- The observer is unregistered in `onBeforeUnmount` — with client side navigation, navigating away won't destroy the observer, which can cause multiple observers to accumulate over time.
+
+In my case, this code was being used inside a layout file, and I wanted to listen to the container resize changes from any page using that layout. This is why I built a Pinia store. All I have to do then is import the store into pages and register a `watch()`.
+
+Here's how the store looked:
+
+```ts
+// store/index.ts
+export const useLayoutStore = defineStore({
+  id: 'layoutStore',
+  state: () => ({
+    containerDimensions: { width: 0, height: 0 },
+  }),
+});
+```
+
+Now watch for changes in any component or page:
+
+```vue
+<script setup lang="ts">
+import { useLayoutStore } from '~/store';
+
+const revChart = ref<any | null>(null);
+const layout = useLayoutStore();
+
+watch(async () => layout.containerDimensions, (val) => {
+  revChart.value?.refresh();
+});
+</script>
+```

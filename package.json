@@ -1,0 +1,41 @@
+{
+  "name": "react-practice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.6.5",
+  "dependencies": {
+    "@tanstack/react-query": "^5.100.6",
+    "@tanstack/react-router": "^1.168.25",
+    "@tanstack/react-router-devtools": "^1.166.13",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "rehype-pretty-code": "^0.14.3",
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "shiki": "^4.0.2",
+    "tailwind": "^4.0.0",
+    "zustand": "^5.0.12"
+  },
+  "devDependencies": {
+    "@mdx-js/rollup": "^3.1.1",
+    "@tailwindcss/typography": "^0.5.19",
+    "@tailwindcss/vite": "^4.2.4",
+    "@tanstack/router-plugin": "^1.167.28",
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.10"
+  }
+}

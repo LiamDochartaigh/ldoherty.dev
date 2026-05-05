@@ -1,0 +1,150 @@
+---
+title: How To Test a Nitro API With a Full Stack Nuxt Application
+description: How to spin up a real Nitro dev server inside Vitest for integration testing Nuxt API endpoints, without mocking the server layer.
+date: 2025-01-05
+---
+
+The last few weeks I've been struggling to set up a testing environment with Vitest for my Nuxt application, for E2E and integration testing. The Nuxt test utils don't seem to spin up an instance of the Nitro server in your project. This makes testing API endpoints difficult. I'm not a fan of mocking and so wanted to create a testing environment that allowed the testing to follow as close to the real runtime environment as possible.
+
+If you're looking for a quick solution, check out the existing [Nitro Test Utils](https://nitro.build/guide/testing) for testing the server in isolation.
+
+I still wanted to implement my own solution.
+
+## Setup
+
+1. NPM install [Vitest](https://vitest.dev/) and [Nuxt Test Utils](https://nuxt.com/docs/getting-started/testing).
+2. Create a new `.env.test` file in the root of your project. If you're using the Nuxt environment with Vitest, this file is used for environment variables.
+3. Create and configure `vitest.config.ts`.
+
+```ts
+// vitest.config.ts
+
+import { defineVitestConfig } from '@nuxt/test-utils/config'
+
+export default defineVitestConfig({
+    test: {
+        environment: 'nuxt',
+        environmentOptions: {
+            nuxt: {
+            }
+        }
+    }
+})
+```
+
+## Reusable test utils
+
+Below I've created some reusable testing utils.
+
+**IMPORTANT:** Make sure you've edited environment variables, especially for your DB, so you don't use any live databases.
+
+```ts
+// tests/utils/setup.ts
+
+import { createNitro, type Nitro, createDevServer, prepare, build } from 'nitropack';
+import { resolve, join } from 'path';
+import { ConnectDB } from '~/server/utils/db';
+import { type TestContext } from '~/tests/utils/types';
+
+export async function Setup() : Promise<TestContext> {
+    const rootDir = resolve(process.cwd(), 'server');
+    const outDir = resolve(process.cwd(), 'tests/.output')
+    const nitro = await createNitro({
+        rootDir,
+        alias: {
+            '~': resolve(process.cwd())
+        },
+        output: {
+            dir: outDir
+        },
+        buildDir: join(outDir, '.nitro'),
+        dev: true,
+        timing: true,
+        runtimeConfig: {
+            ...useRuntimeConfig(),
+            is_test_mode: true
+        }
+    })
+    const server = createDevServer(nitro);
+    await server.listen(3000);
+    await prepare(nitro);
+    const ready = new Promise<void>((resolve) => {
+        nitro.hooks.hook('dev:reload', () => resolve())
+    })
+    await build(nitro)
+    await ready
+
+    const db = await ConnectDB();
+    return { nitro, db, }
+}
+
+export async function TearDown(nitro: Nitro) {
+    const db = await ConnectDB();
+    // Make sure you've changed env variables so you don't accidentally drop a live database
+    // await db?.connection.dropDatabase();
+    await db?.disconnect();
+    await nitro.close();
+}
+```
+
+This code just starts up a dev Nitro server. Some things to note:
+
+- `rootDir` points to `server`, which is where your Nitro project is located in a typical full stack Nuxt project.
+- If you're running the tests with Vitest in the Nuxt environment, you can pass the runtime config directly to Nitro in the `createNitro` method.
+
+## Example test
+
+```ts
+// tests/server/api/users/get-users.ts
+
+import { describe, it, beforeAll, afterAll, expect, test, vi } from 'vitest';
+import { FetchError } from 'ofetch';
+import { User } from '~/server/models/users';
+import { Setup, TearDown } from '~/tests/utils/setup';
+import { SetupTestUser } from '~/tests/utils/user';
+import { type TestContext } from '~/tests/utils/types';
+
+describe('Get Lower Thirds Presets', async () => {
+    let user;
+    let testContext = {} as TestContext;
+    beforeAll(async () => {
+        testContext = await Setup();
+
+        await User.deleteMany();
+        user = await SetupTestUser();
+
+        // Disconnect database connection to ensure thorough testing of serverless functions
+        await testContext.db?.disconnect();
+    });
+
+    it('should return user when auth present', async () => {
+        try {
+            const token = useCookie('access-token');
+            token.value = '123';
+            await $fetch('/api/users/get-users');
+        }
+        catch (error: any) {
+            console.error(error);
+            expect(false, 'Should have returned users').toBe(true);
+        }
+    })
+
+    afterAll(async () => {
+        await TearDown(testContext.nitro);
+    });
+});
+```
+
+Run tests using:
+
+```bash
+npx vitest
+```
+
+## Caveats
+
+When you run Vitest it will be on a different process than the Nitro server you spin up. So if you try to use mocks on the server side they will not work correctly, since that server was not started in a Vitest environment. I'm still working on a better way to get the server running in a test environment.
+
+For now, I've been using [MSW (Mock Service Worker)](https://mswjs.io/) to intercept external API calls originating from the Nitro server.
+
+If you add a test mode environment flag to your Nitro server — `is_test_mode` for example, set to `false` by default — and override it in the `runtimeConfig` during test setup (see setup code above), you can then use a Nitro plugin to check for that flag. When it's `true`, run your MSW setup code.

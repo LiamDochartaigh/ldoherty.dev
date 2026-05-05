@@ -1,0 +1,130 @@
+---
+title: How To Use Socket.io With a Nitro (UnJS) Server
+description: A guide to integrating Socket.io with a Nitro server in Nuxt, including CORS setup, client connection, and fixes for common polling fallback issues.
+date: 2024-10-09
+---
+
+I've spent the last few days struggling to get Socket.io to work with my Nitro server. Nitro does now support websockets natively, but you can also use libraries like Socket.io.
+
+I encountered an issue when I implemented the code from the [Socket.io docs](https://socket.io/how-to/use-with-nuxt) for use with Nuxt. That code works, however I had trouble with the polling fallback due to some Nitro server middleware I had set up. (Skip to see issue)
+
+Here's a look at how you can implement Socket.io in Nuxt.
+
+```ts
+//  server/plugins/websocket.ts
+
+import { Server } from "socket.io";
+import { Server as Engine } from "engine.io";
+
+export default defineNitroPlugin(async (nitroApp) => {
+  const engine = new Engine();
+  const io = new Server();
+  io.bind(engine);
+
+  io.on("connection", (socket) => {
+    console.log("Websocket Connected");
+  });
+
+  nitroApp.router.use("/socket.io/", defineEventHandler({
+    handler(event) {
+      // @ts-expect-error expects EngineRequest
+      engine.handleRequest(event.node.req, event.node.res);
+      event._handled = true;
+    },
+    websocket: {
+      open(peer) {
+        console.log("Websocket Opened");
+        const nodeContext = peer.ctx.node;
+        const req = nodeContext.req;
+
+        // @ts-expect-error private method
+        engine.prepare(req);
+
+        const rawSocket = nodeContext.req.socket;
+        const websocket = nodeContext.ws;
+
+        // @ts-expect-error private method
+        engine.onWebSocket(req, rawSocket, websocket);
+      }
+    }
+  }));
+})
+```
+
+You also need to enable websockets within the Nitro config. Or if you're using Nuxt, it's enabled in your `nuxt.config`.
+
+```ts
+//  nitro.config.ts
+
+// https://nitro.unjs.io/config
+export default defineNitroConfig({
+  srcDir: "server",
+  experimental: {
+    websocket: true,
+  }
+});
+```
+
+In my case, I was sending socket requests from a different host than my front-end Nuxt application. In order to establish a connection with Socket.io, CORS needs to be handled in Nitro. This can be done on your Socket.io server setup, or with Nitro middleware.
+
+```ts
+// server/middleware/cors.ts
+
+export default defineEventHandler((event) => {
+  const frontEndUrl = 'http://localhost:3000'
+  setResponseHeaders(event, {
+    'Access-Control-Allow-Origin': frontEndUrl,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+});
+```
+
+To connect from the client, first make sure to install the `socket.io-client` package — this is separate from the server-side package.
+
+```ts
+import { io } from "socket.io-client";
+
+let socket;
+
+onMounted(() => {
+  const serverUrl = 'http://localhost:4000'
+  socket = io(serverUrl);
+
+  socket.on("connect", () => {
+    console.log("Connected to server");
+  });
+
+  socket.on('connect_error', (error) => {
+    console.log("Connection Error: ", error.message);
+  });
+});
+```
+
+## Potential Issues With Implementation
+
+After implementing the code above, I was still having issues opening sockets with my server, especially with the polling fallback option.
+
+After some digging, the issue was related to a logging middleware I had set up in Nitro. This middleware was using `await readBody(event)`, which reads the request's data stream before it reaches the event handler registered to handle Socket.io requests (see plugin code above).
+
+Specifically, the handler below has to execute while the node request is still readable, as it hooks into the request `on('data')` listener.
+
+```ts
+//  server/plugins/websocket.ts
+
+handler(event) {
+  // Needs to receive a readable node request
+  engine.handleRequest(event.node.req, event.node.res);
+  event._handled = true;
+}
+```
+
+The fix was to add a filter to the logging middleware to ignore requests containing `/socket.io/`.
+
+## Additional Troubleshooting
+
+- Double-check that you have enabled the Nitro experimental feature flag for websockets in the config file.
+- If you're using Nuxt with Nitro and deploying to serverless platforms like Vercel, you may have issues with websockets connecting [supported platforms](https://github.com/unjs/nitro/issues/2171). The polling option for Socket.io should still work, though.
+- In serverless deployments, you might have issues keeping sockets open if your instance spins down. I solved this by deploying a Nitro server on Railway to handle long-running processes.

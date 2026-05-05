@@ -1,0 +1,204 @@
+---
+title: Creating a Custom ESLint Rule in TypeScript to Ensure an Active Database Connection
+description: How to write and wire up a custom typescript-eslint rule that detects Mongoose model calls and enforces a preceding connectDB() in the same scope.
+date: 2024-11-26
+---
+
+This week, I dove into using ESLint custom rules for the first time. Due to the fact that I'm working with a serverless deployment, I need to ensure that there's an active database connection every time a serverless function is called. With the way serverless instances work, it's not guaranteed that a database is connected when a cold start is initiated.
+
+My solution was to create a custom ESLint rule that detects when you're calling functions on a Mongoose model, and ensures some logic that connects the DB precedes the action within the code block's scope.
+
+However, I will focus more on detailing how I set up the custom rule with [typescript-eslint](https://typescript-eslint.io/) here rather than my specific solution.
+
+I will not be creating a plugin for ESLint. Instead, I made use of the [virtual plugin](https://eslint.org/docs/latest/use/configure/plugins#configure-a-virtual-plugin) feature.
+
+Start off by following the [installation steps for typescript-eslint](https://typescript-eslint.io/getting-started).
+
+Then create a folder called `eslint-rules` to store the custom rules, and create a new TypeScript file within it with a useful name.
+
+Here's mine:
+
+```ts
+//  eslint-rules/require-db-connection.ts
+
+import { ESLintUtils, AST_NODE_TYPES } from '@typescript-eslint/utils';
+import { Scope } from '@typescript-eslint/utils/ts-eslint';
+
+export const rule = ESLintUtils.RuleCreator.withoutDocs({
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Ensure connectDB() is called before any Mongoose model operation.',
+    },
+    schema: [],
+    messages: {
+      connectDb: 'Mongoose operation "{{ calleeName }}" must be preceded by a call to connectDB() in the same scope.',
+    },
+  },
+  defaultOptions: [],
+  create(context) {
+    const scopesWithConnectDB = new Set<Scope.Scope>();
+    const parserServices = ESLintUtils.getParserServices(context);
+    const checker = parserServices.program.getTypeChecker();
+    return {
+      CallExpression(node) {
+        const callee = node.callee;
+
+        // Tracks scopes where connectDB is used
+        if (callee.type === AST_NODE_TYPES.Identifier && callee.name === 'ConnectDB') {
+          scopesWithConnectDB.add(context.sourceCode.getScope(node));
+        } else if (
+          callee.type === AST_NODE_TYPES.MemberExpression &&
+          callee.property.type === AST_NODE_TYPES.Identifier
+        ) {
+          const tsNode = parserServices.esTreeNodeToTSNodeMap.get(callee.object);
+          const type = checker.getTypeAtLocation(tsNode);
+
+          const typeSymbol = type.getSymbol();
+          if (!typeSymbol) return;
+
+          const typeName = typeSymbol.getName();
+          if (typeName !== 'Model') return;
+
+          const scope = context.sourceCode.getScope(node);
+          if (!ScopesConnected(scope, scopesWithConnectDB)) {
+            context.report({
+              node,
+              messageId: 'connectDb',
+              data: { calleeName: callee.property.name },
+            });
+          }
+        }
+      }
+    };
+  }
+});
+
+// Traverses up the scope chain to find the nearest scope that matches
+function ScopesConnected(target: Scope.Scope, scopes: Set<Scope.Scope>) {
+  let currentScope: Scope.Scope | null = target;
+  while (currentScope) {
+    if (scopes.has(currentScope)) {
+      return true;
+    }
+    if (currentScope.type === Scope.ScopeType.function) {
+      break;
+    }
+    currentScope = currentScope.upper;
+  }
+  return false;
+}
+
+export default rule;
+```
+
+The important thing to note here is: in order to get type-safe properties when creating a custom rule, import `ESLintUtils` and use its `RuleCreator`.
+
+Within the same `eslint-rules` folder, create a `tsconfig.rules.json` file.
+
+```json
+//  eslint-rules/tsconfig.rules.json
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "../dist",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "noEmit": false,
+    "strict": true
+  },
+  "include": [
+    "**/*.ts"
+  ]
+}
+```
+
+This config file is needed to transpile the TypeScript rule to JavaScript. The `outDir` property sets the directory for the transpiled output.
+
+You should already have a `tsconfig.json` in the root of your project — this new `tsconfig.rules.json` should extend it. The `include` glob matches all TypeScript files within the `eslint-rules` directory, telling the transpiler which files to process.
+
+Use the following command to transpile the custom rule:
+
+```bash
+npx tsc --project eslint-rules/tsconfig.rules.json
+```
+
+If successful, you'll see the converted JavaScript file within the `/dist` folder.
+
+Now, to get the rule actually working, it needs to be set up within `eslint.config.js`. Create it in the root of your project if it doesn't already exist.
+
+```js
+//  eslint.config.js
+
+import rule from './dist/require-db-connect.js';
+import tseslint from 'typescript-eslint';
+import tsParser from '@typescript-eslint/parser';
+
+export default tseslint.config(
+  {
+    // Globally ignore these files and directories
+    // Note: a global ignores object must have no other keys
+    ignores: [
+      ".output/**",
+      "dist/**",
+      ".nuxt/**",
+      "eslint.config.js",
+      '/**/*.js',
+    ],
+  },
+  {
+    // Choose the files the custom rule should run on
+    files: ['server/**/*.ts'],
+    // Creates a virtual plugin with the imported custom rule
+    plugins: {
+      local: {
+        rules: {
+          'require-db-connect': rule,
+        }
+      }
+    },
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: "module",
+      parser: tsParser,
+      parserOptions: {
+        project: "./tsconfig.eslint.json",
+      },
+    },
+    rules: {
+      "local/require-db-connect": "error"
+    }
+  }
+);
+```
+
+There are two separate objects within the config. The first sets a global ignores pattern — this only works when the object has no other keys. The reason for using global ignores here is to avoid running the default ESLint rules; remove it if you want those rules applied.
+
+The second object sets up the custom rule. Import the custom rule and insert it into the virtual plugin. The `files` property defines which files or directories the rule runs on — in my case only the `server` directory, but adjust the pattern for your project.
+
+Under `parserOptions`, the `project` property points to a dedicated tsconfig for ESLint in the root of your project:
+
+```json
+//  tsconfig.eslint.json
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "module": "node16",
+    "moduleResolution": "bundler"
+  },
+  "extends": "./tsconfig.json"
+}
+```
+
+Again, extend your original `tsconfig.json` here and set `noEmit: true` to avoid any files being output.
+
+You can now run the command below to test the rule. If you run into issues, add the `--debug` flag to get more detail on what went wrong.
+
+```bash
+npx eslint
+```
+
+For real-time errors in your IDE, install the ESLint extension.
