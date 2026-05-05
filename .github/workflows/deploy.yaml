@@ -12,18 +12,25 @@ jobs:
           curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
           sudo dpkg -i cloudflared.deb
 
-      - name: SSH & Deploy
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.PI_HOST }}
-          username: ${{ secrets.PI_USER }}
-          key: ${{ secrets.PI_SSH_KEY }}
-          proxy_command: cloudflared access ssh --hostname %h
-          envs: PI_SOURCE_DIR,PI_PUBLIC_HTML
-          script: |
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.PI_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          echo "Host ${{ secrets.PI_HOST }}" >> ~/.ssh/config
+          echo "  ProxyCommand cloudflared access ssh --hostname %h" >> ~/.ssh/config
+          echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Deploy
+        run: |
+          ssh ${{ secrets.PI_USER }}@${{ secrets.PI_HOST }} '
             cd $PI_SOURCE_DIR
             git pull origin main
             npm install
             npm run build
             rm -rf $PI_PUBLIC_HTML/*
             cp -r dist/* $PI_PUBLIC_HTML/
+          '
+        env:
+          PI_SOURCE_DIR: ${{ secrets.PI_SOURCE_DIR }}
+          PI_PUBLIC_HTML: ${{ secrets.PI_PUBLIC_HTML }}
