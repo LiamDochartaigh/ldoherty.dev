@@ -9,6 +9,10 @@ node_modules# See https://help.github.com/articles/ignoring-files/ for more abou
 /build
 /dist
 
+#deploy
+deploy.sh
+deploy.bat
+
 # misc
 .DS_Store
 *.pem
