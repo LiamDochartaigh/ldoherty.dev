@@ -46,7 +46,7 @@ function Footer() {
     <footer className="bg-surface border-t border-primary/20">
       <div className="max-w-5xl mx-auto px-6 h-14 flex items-center justify-between">
         <span className="text-sm text-muted">
-          © {year} {host} · hosted on raspberry pi 5
+          © {year} {host} · hosted on <Link className='underline' to={'/stats'}>rasberry pi 5</Link>
         </span>
         <div className="flex gap-4 items-center">
           <a

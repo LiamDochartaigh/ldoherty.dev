@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SplatRouteImport } from './routes/$'
 import { Route as PublicRouteRouteImport } from './routes/_public/route'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as PublicStatsRouteImport } from './routes/_public/stats'
 import { Route as PublicBlogRouteRouteImport } from './routes/_public/blog/route'
 import { Route as PublicBlogIndexRouteImport } from './routes/_public/blog/index'
 import { Route as PublicProjectsProjectSlugRouteImport } from './routes/_public/projects/$projectSlug'
@@ -29,6 +30,11 @@ const PublicRouteRoute = PublicRouteRouteImport.update({
 const PublicIndexRoute = PublicIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => PublicRouteRoute,
+} as any)
+const PublicStatsRoute = PublicStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
   getParentRoute: () => PublicRouteRoute,
 } as any)
 const PublicBlogRouteRoute = PublicBlogRouteRouteImport.update({
@@ -57,12 +63,14 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/$': typeof SplatRoute
   '/blog': typeof PublicBlogRouteRouteWithChildren
+  '/stats': typeof PublicStatsRoute
   '/blog/$blogSlug': typeof PublicBlogBlogSlugRoute
   '/projects/$projectSlug': typeof PublicProjectsProjectSlugRoute
   '/blog/': typeof PublicBlogIndexRoute
 }
 export interface FileRoutesByTo {
   '/$': typeof SplatRoute
+  '/stats': typeof PublicStatsRoute
   '/': typeof PublicIndexRoute
   '/blog/$blogSlug': typeof PublicBlogBlogSlugRoute
   '/projects/$projectSlug': typeof PublicProjectsProjectSlugRoute
@@ -73,6 +81,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteRouteWithChildren
   '/$': typeof SplatRoute
   '/_public/blog': typeof PublicBlogRouteRouteWithChildren
+  '/_public/stats': typeof PublicStatsRoute
   '/_public/': typeof PublicIndexRoute
   '/_public/blog/$blogSlug': typeof PublicBlogBlogSlugRoute
   '/_public/projects/$projectSlug': typeof PublicProjectsProjectSlugRoute
@@ -84,16 +93,24 @@ export interface FileRouteTypes {
     | '/'
     | '/$'
     | '/blog'
+    | '/stats'
     | '/blog/$blogSlug'
     | '/projects/$projectSlug'
     | '/blog/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/$' | '/' | '/blog/$blogSlug' | '/projects/$projectSlug' | '/blog'
+  to:
+    | '/$'
+    | '/stats'
+    | '/'
+    | '/blog/$blogSlug'
+    | '/projects/$projectSlug'
+    | '/blog'
   id:
     | '__root__'
     | '/_public'
     | '/$'
     | '/_public/blog'
+    | '/_public/stats'
     | '/_public/'
     | '/_public/blog/$blogSlug'
     | '/_public/projects/$projectSlug'
@@ -126,6 +143,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof PublicIndexRouteImport
+      parentRoute: typeof PublicRouteRoute
+    }
+    '/_public/stats': {
+      id: '/_public/stats'
+      path: '/stats'
+      fullPath: '/stats'
+      preLoaderRoute: typeof PublicStatsRouteImport
       parentRoute: typeof PublicRouteRoute
     }
     '/_public/blog': {
@@ -175,12 +199,14 @@ const PublicBlogRouteRouteWithChildren = PublicBlogRouteRoute._addFileChildren(
 
 interface PublicRouteRouteChildren {
   PublicBlogRouteRoute: typeof PublicBlogRouteRouteWithChildren
+  PublicStatsRoute: typeof PublicStatsRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicProjectsProjectSlugRoute: typeof PublicProjectsProjectSlugRoute
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicBlogRouteRoute: PublicBlogRouteRouteWithChildren,
+  PublicStatsRoute: PublicStatsRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicProjectsProjectSlugRoute: PublicProjectsProjectSlugRoute,
 }
