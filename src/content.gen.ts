@@ -3,113 +3,113 @@ import { ContentMeta } from '../plugins/content-index/types'
             
 export const blogMeta: ContentMeta[] = [{
         title: "Creating a Custom ESLint Rule in TypeScript to Ensure an Active Database Connection",
-description: "How to write and wire up a custom typescript-eslint rule that detects Mongoose model calls and enforces a preceding connectDB() in the same scope.",
-date: "2024-11-26",
+        description: "How to write and wire up a custom typescript-eslint rule that detects Mongoose model calls and enforces a preceding connectDB() in the same scope.",
+        date: "2024-11-26",
         slug: "creating-a-custom-eslint-rule-in-typescript-to-ensure-active-database-connection",
         path: "../src/content/blog/creating-a-custom-eslint-rule-in-typescript-to-ensure-active-database-connection.mdx",
         component: () => import("../src/content/blog/creating-a-custom-eslint-rule-in-typescript-to-ensure-active-database-connection.mdx")
     },
-{
+    {
         title: "How To Guide: Using Apex Charts in Nuxt",
-description: "How to resolve the \"window is not defined\" SSR error when using ApexCharts.js in a Nuxt application, with several approaches including ClientOnly, route rules, and wrapper components.",
-date: "2024-12-13",
+        description: "How to resolve the \"window is not defined\" SSR error when using ApexCharts.js in a Nuxt application, with several approaches including ClientOnly, route rules, and wrapper components.",
+        date: "2024-12-13",
         slug: "how-to-guide-using-apex-charts-in-nuxt",
         path: "../src/content/blog/how-to-guide-using-apex-charts-in-nuxt.mdx",
         component: () => import("../src/content/blog/how-to-guide-using-apex-charts-in-nuxt.mdx")
     },
-{
+    {
         title: "How To Test a Nitro API With a Full Stack Nuxt Application",
-description: "How to spin up a real Nitro dev server inside Vitest for integration testing Nuxt API endpoints, without mocking the server layer.",
-date: "2025-01-05",
+        description: "How to spin up a real Nitro dev server inside Vitest for integration testing Nuxt API endpoints, without mocking the server layer.",
+        date: "2025-01-05",
         slug: "how-to-test-nitro-api-with-full-stack-nuxt-application",
         path: "../src/content/blog/how-to-test-nitro-api-with-full-stack-nuxt-application.mdx",
         component: () => import("../src/content/blog/how-to-test-nitro-api-with-full-stack-nuxt-application.mdx")
     },
-{
+    {
         title: "How To Use Socket.io With a Nitro (UnJS) Server",
-description: "A guide to integrating Socket.io with a Nitro server in Nuxt, including CORS setup, client connection, and fixes for common polling fallback issues.",
-date: "2024-10-09",
+        description: "A guide to integrating Socket.io with a Nitro server in Nuxt, including CORS setup, client connection, and fixes for common polling fallback issues.",
+        date: "2024-10-09",
         slug: "how-to-use-socket-io-with-nitro-unjs-server",
         path: "../src/content/blog/how-to-use-socket-io-with-nitro-unjs-server.mdx",
         component: () => import("../src/content/blog/how-to-use-socket-io-with-nitro-unjs-server.mdx")
     },
-{
+    {
         title: "How to Track Vuetify Navigation Drawer Resize in Vue",
-description: "How to use ResizeObserver and a Pinia store to reliably detect Vuetify navigation drawer layout shifts for re-rendering charts or other size-dependent components.",
-date: "2024-12-08",
+        description: "How to use ResizeObserver and a Pinia store to reliably detect Vuetify navigation drawer layout shifts for re-rendering charts or other size-dependent components.",
+        date: "2024-12-08",
         slug: "how-to-watch-vuetify-navigation-drawer-resize-transition",
         path: "../src/content/blog/how-to-watch-vuetify-navigation-drawer-resize-transition.mdx",
         component: () => import("../src/content/blog/how-to-watch-vuetify-navigation-drawer-resize-transition.mdx")
     },
-{
+    {
         title: "Maintaining Mongoose Database Connections with a Nuxt Serverless Deployment",
-description: "How to handle cold starts and database connection race conditions in a Nuxt app deployed on Vercel using a cached connection utility.",
-date: "2024-09-21",
+        description: "How to handle cold starts and database connection race conditions in a Nuxt app deployed on Vercel using a cached connection utility.",
+        date: "2024-09-21",
         slug: "maintaining-database-connections-with-nuxt-serverless",
         path: "../src/content/blog/maintaining-database-connections-with-nuxt-serverless.mdx",
         component: () => import("../src/content/blog/maintaining-database-connections-with-nuxt-serverless.mdx")
     },
-{
+    {
         title: "Recreating CSS Border Functionality for SVG Elements",
-description: "How to calculate a uniformly offset inner path for SVG shapes to replicate the consistent thickness of a CSS border.",
-date: "2024-10-01",
+        description: "How to calculate a uniformly offset inner path for SVG shapes to replicate the consistent thickness of a CSS border.",
+        date: "2024-10-01",
         slug: "recreating-css-border-for-svg",
         path: "../src/content/blog/recreating-css-border-for-svg.mdx",
         component: () => import("../src/content/blog/recreating-css-border-for-svg.mdx")
     },
-{
+    {
         title: "Type-Safe Mongoose Query Projections",
-description: "How to build a generic utility function that applies Mongoose query projections while preserving full TypeScript type safety on the result.",
-date: "2024-10-05",
+        description: "How to build a generic utility function that applies Mongoose query projections while preserving full TypeScript type safety on the result.",
+        date: "2024-10-05",
         slug: "type-safe-mongoose-query-projections",
         path: "../src/content/blog/type-safe-mongoose-query-projections.mdx",
         component: () => import("../src/content/blog/type-safe-mongoose-query-projections.mdx")
     }]
 export const projectsMeta: ContentMeta[] = [{
         title: "Etsy Bulk Sale Creator",
-description: "Chrome extension that automates the Etsy sale creation flow via CSV upload, filling every form field automatically.",
+        description: "Chrome extension that automates the Etsy sale creation flow via CSV upload, filling every form field automatically.",
         slug: "etsy-bulk-sale-creator",
         path: "../src/content/projects/etsy-bulk-sale-creator.mdx",
         component: () => import("../src/content/projects/etsy-bulk-sale-creator.mdx")
     },
-{
+    {
         title: "Hexeum Platform",
-description: "Interactive streaming platform processing 1.5M+ Twitch events monthly with live overlays and community engagement tools.",
+        description: "Interactive streaming platform processing 1.5M+ Twitch events monthly with live overlays and community engagement tools.",
         slug: "hexeum-platform",
         path: "../src/content/projects/hexeum-platform.mdx",
         component: () => import("../src/content/projects/hexeum-platform.mdx")
     },
-{
+    {
         title: "Hexeum",
-description: "Twitch overlay marketplace serving 300k+ content creators worldwide with professional stream graphics and widgets.",
+        description: "Twitch overlay marketplace serving 300k+ content creators worldwide with professional stream graphics and widgets.",
         slug: "hexeum",
         path: "../src/content/projects/hexeum.mdx",
         component: () => import("../src/content/projects/hexeum.mdx")
     },
-{
+    {
         title: "Lower Thirds",
-description: "Streamlabs tool that helps streamers grow social followings with configurable, brandable lower third displays.",
+        description: "Streamlabs tool that helps streamers grow social followings with configurable, brandable lower third displays.",
         slug: "lower-thirds",
         path: "../src/content/projects/lower-thirds.mdx",
         component: () => import("../src/content/projects/lower-thirds.mdx")
     },
-{
+    {
         title: "Shooty Squad",
-description: "Indie FPS built in Unity3D and published on Steam. Featured by major YouTubers, generating millions of views.",
+        description: "Indie FPS built in Unity3D and published on Steam. Featured by major YouTubers, generating millions of views.",
         slug: "shooty-squad",
         path: "../src/content/projects/shooty-squad.mdx",
         component: () => import("../src/content/projects/shooty-squad.mdx")
     },
-{
+    {
         title: "Stream Widgets",
-description: "Mini-game widgets for Twitch streamers that turn viewer actions like follows and donations into interactive gameplay.",
+        description: "Mini-game widgets for Twitch streamers that turn viewer actions like follows and donations into interactive gameplay.",
         slug: "stream-widgets",
         path: "../src/content/projects/stream-widgets.mdx",
         component: () => import("../src/content/projects/stream-widgets.mdx")
     },
-{
+    {
         title: "Streamelements Devkit",
-description: "Local dev environment for StreamElements widgets with TypeScript support, hot reload, and full Twitch event simulation.",
+        description: "Local dev environment for StreamElements widgets with TypeScript support, hot reload, and full Twitch event simulation.",
         slug: "streamelements-devkit",
         path: "../src/content/projects/streamelements-devkit.mdx",
         component: () => import("../src/content/projects/streamelements-devkit.mdx")

@@ -63,12 +63,12 @@ function toMetaName(dirName: string) {
 function generateContentCategory(category: string, entries: MdxExtracted[]) {
     const metaName = toMetaName(category)
 
-    const objects = entries.map(({ meta, relativePath, slug }: { meta: {}, relativePath: string, slug: string }) => {
+    const objects = entries.map(({ meta, relativePath, slug }: { meta: {}, relativePath: string, slug: string }, index) => {
         const metaFields = Object.entries(meta)
             .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
-            .join(',\n')
+            .join(',\n        ')
 
-        return `{
+        return `${index > 0 ? '    ' : ''}{
         ${metaFields},
         slug: ${JSON.stringify(slug)},
         path: ${JSON.stringify(relativePath)},

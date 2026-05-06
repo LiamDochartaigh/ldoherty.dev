@@ -19,7 +19,7 @@ export function PagifiedContentsCards({ items, pageLimit }: Props) {
 
   return (
     <div className="flex flex-col gap-8">
-      <div className="grid grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {visible.map((item) => (
           <ContentCard {...item} />
         ))}
