@@ -39,8 +39,8 @@ importers:
         specifier: ^4.0.0
         version: 4.0.0
       vite-plugin-mdx-content:
-        specifier: ^1.0.1
-        version: 1.0.1(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1))
+        specifier: ^1.0.2
+        version: 1.0.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1))
       zustand:
         specifier: ^5.0.12
         version: 5.0.12(@types/react@19.2.14)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
@@ -2381,8 +2381,8 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vite-plugin-mdx-content@1.0.1:
-    resolution: {integrity: sha512-HhM3HEjlGA0i7V7HaNUTXCZ8mqGlSVo4ddNZjiImuZw6jPlL8KbDUzLU2iWh2BBAVURjX7KIRyoWXqwDpV6QZw==}
+  vite-plugin-mdx-content@1.0.2:
+    resolution: {integrity: sha512-3wUH6LDEc6iwXUrRFwvG4doP0F75r6XolsN5xAoJgoH8qnT41D6ws9Q9kg2qcLXNRNuwZzIxj414lKSaAlPbGQ==}
     peerDependencies:
       vite: '>=3.0.0'
 
@@ -5394,7 +5394,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plugin-mdx-content@1.0.1(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)):
+  vite-plugin-mdx-content@1.0.2(vite@8.0.10(@types/node@25.6.0)(jiti@2.6.1)):
     dependencies:
       vite: 8.0.10(@types/node@25.6.0)(jiti@2.6.1)
 
