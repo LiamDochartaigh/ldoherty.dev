@@ -4,7 +4,6 @@ import { LinkComponentProps } from "@tanstack/react-router"
 export interface Content {
   title: string
   description: string,
-  date: string,
   linkProps: LinkComponentProps,
   btnLabel: string
 }
